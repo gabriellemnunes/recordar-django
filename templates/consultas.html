@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero"><div><p class="eyebrow">CUIDADO E ORGANIZAÇÃO</p><h1>Consultas</h1><p>Agende e acompanhe suas consultas médicas.</p></div></section>
+{% for message in messages %}<p class="card" role="status">{{ message }}</p>{% endfor %}
+<div class="columns">
+<section class="card"><h2>Nova consulta</h2><form method="post">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<div style="margin:14px 0">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}<button type="submit">Agendar consulta</button></form></section>
+<section class="card"><h2>Histórico de consultas</h2><p>Inclui consultas agendadas e canceladas.</p>{% for consulta in consultas %}<article class="entry"><div class="date"><strong>{{ consulta.data|date:'d' }}</strong><span>{{ consulta.data|date:'M/Y' }}</span></div><div class="entry-body"><h3>{{ consulta.medico }}</h3><p>{{ consulta.paciente }} · {{ consulta.especialidade }}</p><p>{{ consulta.clinica }} · {{ consulta.horario|time:'H:i' }}</p><span class="status" {% if consulta.status == 'cancelada' %}style="background:#f1e9ed;color:#794052"{% endif %}>{{ consulta.get_status_display }}</span>{% if consulta.status == 'agendada' %}<form method="post" action="{% url 'cancelar_consulta' consulta.pk %}" style="margin-top:10px">{% csrf_token %}<button type="submit">Cancelar consulta</button></form>{% endif %}</div></article>{% empty %}<p class="empty">Nenhuma consulta cadastrada.</p>{% endfor %}</section>
+</div>
+{% endblock %}

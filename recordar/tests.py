@@ -31,3 +31,53 @@ class DashboardTests(TestCase):
         r=self.client.get('/')
         self.assertContains(r,'<style>')
         self.assertContains(r,'grid-template-columns')
+
+class ConsultaTests(TestCase):
+    def setUp(self):
+        self.p = Paciente.objects.create(nome='Paciente teste', email='consulta@example.com')
+        self.dados = dict(paciente=self.p.pk, medico='Médico teste', especialidade='Clínica geral', clinica='Clínica teste', data=(timezone.localdate()+timedelta(days=2)).isoformat(), horario='10:00')
+
+    def test_agendar(self):
+        self.assertRedirects(self.client.post('/consultas/', self.dados), '/consultas/')
+        self.assertEqual(Consulta.objects.get().paciente, self.p)
+        self.assertContains(self.client.get('/consultas/'), 'Médico teste')
+
+    def test_duplicidade(self):
+        self.client.post('/consultas/', self.dados)
+        self.assertContains(self.client.post('/consultas/', self.dados), 'já possui uma consulta')
+        self.assertEqual(Consulta.objects.count(), 1)
+
+    def test_cancelar_e_reagendar(self):
+        self.client.post('/consultas/', self.dados)
+        c = Consulta.objects.get()
+        url = f'/consultas/{c.pk}/cancelar/'
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.assertRedirects(self.client.post(url), '/consultas/')
+        c.refresh_from_db()
+        self.assertEqual(c.status, 'cancelada')
+        self.assertRedirects(self.client.post('/consultas/', self.dados), '/consultas/')
+        self.assertEqual(Consulta.objects.filter(status='agendada').count(), 1)
+
+    def test_data_passada(self):
+        self.dados['data'] = (timezone.localdate()-timedelta(days=1)).isoformat()
+        self.assertContains(self.client.post('/consultas/', self.dados), 'Escolha uma data')
+        self.assertFalse(Consulta.objects.exists())
+
+    def test_paciente_com_medicos_diferentes(self):
+        self.client.post('/consultas/', self.dados)
+        resposta = self.client.post('/consultas/', dict(self.dados, medico='Outro médico'))
+        self.assertContains(resposta, 'Este paciente já possui uma consulta')
+        self.assertEqual(Consulta.objects.count(), 1)
+
+    def test_medico_com_pacientes_diferentes(self):
+        self.client.post('/consultas/', self.dados)
+        outro = Paciente.objects.create(nome='Outro', email='outro@example.com')
+        self.assertContains(self.client.post('/consultas/', dict(self.dados, paciente=outro.pk)), 'Este médico já possui uma consulta')
+        self.assertEqual(Consulta.objects.count(), 1)
+
+    def test_cancelada_no_historico(self):
+        self.client.post('/consultas/', self.dados)
+        c = Consulta.objects.get()
+        self.client.post(f'/consultas/{c.pk}/cancelar/')
+        self.assertContains(self.client.get('/consultas/'), 'Cancelada')
+        self.assertContains(self.client.get('/consultas/'), 'Médico teste')
