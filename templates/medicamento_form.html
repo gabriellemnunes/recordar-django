@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% load static %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'medicamentos.css' %}">
+<header class="hero med-hero"><div><p class="eyebrow">ROTINA DE CUIDADOS</p><h1>{% if edicao %}Editar medicamento{% else %}Cadastrar medicamento{% endif %}</h1><p>Preencha as informações para manter sua rotina organizada.</p></div></header>
+<section class="card med-panel med-form-panel"><div class="med-panel-title"><div><p class="eyebrow">DADOS DO TRATAMENTO</p><h2>Informações do medicamento</h2></div></div>
+<form method="post" novalidate>{% csrf_token %}{% if form.non_field_errors %}<div class="med-errors">{{ form.non_field_errors }}</div>{% endif %}<div class="med-form-grid">{% for field in form %}<div class="med-field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-label="obrigatório">*</span>{% endif %}</label>{{ field }}{% if field.errors %}<div class="med-field-errors">{{ field.errors }}</div>{% endif %}</div>{% endfor %}</div><div class="med-form-actions"><a class="med-cancel" href="{% url 'medicamentos' %}">Cancelar</a><button type="submit">{% if edicao %}Salvar alterações{% else %}Cadastrar medicamento{% endif %}</button></div></form>
+</section>{% endblock %}
