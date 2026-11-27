@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'pacientes.css' %}">
+<header class="hero pac-hero">
+  <div><p class="eyebrow">CADASTRO E DADOS</p><h1>Gerenciamento de pacientes</h1><p>Cadastre e mantenha os dados dos pacientes organizados.</p></div>
+</header>
+{% if messages %}<div aria-live="polite">{% for message in messages %}<div class="pac-notice">{{ message }}</div>{% endfor %}</div>{% endif %}
+<div class="pac-layout">
+  <section class="card pac-form-card">
+    <div class="pac-panel-title"><div><p class="eyebrow">NOVO CADASTRO</p><h2>Cadastrar paciente</h2></div></div>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="pac-errors">{{ form.non_field_errors }}</div>{% endif %}
+      <div class="pac-form-grid">
+        {% for field in form %}
+        <div class="pac-field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-label="obrigatório">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.errors %}<div class="pac-field-errors">{{ field.errors }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="pac-form-actions"><button type="submit">Cadastrar paciente</button></div>
+    </form>
+  </section>
+  <section class="card pac-list-card">
+    <div class="pac-panel-title"><div><p class="eyebrow">PACIENTES</p><h2>Pacientes cadastrados</h2></div><span class="pac-count">{{ pacientes|length }} registro{{ pacientes|length|pluralize }}</span></div>
+    <form method="get" class="pac-search">
+      <label for="busca">Buscar por nome ou e-mail</label>
+      <div><input id="busca" name="busca" value="{{ busca }}" placeholder="Digite uma busca"><button type="submit">Buscar</button>{% if busca %}<a href="{% url 'pacientes' %}">Limpar</a>{% endif %}</div>
+    </form>
+    <div class="pac-table-wrap">
+      <table class="pac-table">
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Nascimento</th><th>Ações</th></tr></thead>
+        <tbody>
+          {% for paciente in pacientes %}
+          <tr>
+            <td><strong>{{ paciente.nome }}</strong></td>
+            <td>{{ paciente.email }}</td>
+            <td>{{ paciente.telefone|default:'—' }}</td>
+            <td>{% if paciente.data_nascimento %}{{ paciente.data_nascimento|date:'d/m/Y' }}{% else %}—{% endif %}</td>
+            <td><div class="pac-actions"><a class="pac-edit" href="{% url 'editar_paciente' paciente.pk %}">Editar</a><form method="post" action="{% url 'excluir_paciente' paciente.pk %}" onsubmit="return confirm('Deseja excluir este paciente?');">{% csrf_token %}<button class="pac-delete" type="submit">Excluir</button></form></div></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5"><div class="pac-empty">Nenhum paciente encontrado.<p>Cadastre o primeiro paciente ou altere a busca.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
