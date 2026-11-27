@@ -14,7 +14,7 @@ class Consulta(models.Model):
     horario = models.TimeField()
     status = models.CharField(max_length=15, choices=[('agendada','Agendada'),('cancelada','Cancelada')], default='agendada')
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['medico','data','horario'], condition=models.Q(status='agendada'), name='horario_medico_unico')]
+        constraints = [models.UniqueConstraint(fields=['medico','data','horario'], condition=models.Q(status='agendada'), name='horario_medico_unico'), models.UniqueConstraint(fields=['paciente','data','horario'], condition=models.Q(status='agendada'), name='horario_paciente_unico')]
 class Medicamento(models.Model):
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='medicamentos')
     nome = models.CharField(max_length=150)
