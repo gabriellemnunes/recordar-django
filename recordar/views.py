@@ -1,8 +1,13 @@
 from django.utils.dateparse import parse_date
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.db.models import Q
+from django.contrib import messages
+from django.views.decorators.http import require_POST
+from django.db import IntegrityError, transaction
+
 from .models import Paciente, Consulta, Medicamento
+from .forms import ConsultaForm, PacienteForm
 
 def dashboard(request):
     pacientes = Paciente.objects.order_by('nome')
@@ -21,12 +26,6 @@ def dashboard(request):
 
 def modulo(request, modulo):
     return render(request,'pendente.html',{'modulo':modulo})
-
-from django.shortcuts import redirect
-from django.db import IntegrityError, transaction
-from django.views.decorators.http import require_POST
-from django.contrib import messages
-from .forms import ConsultaForm
 
 def consultas(request):
     form = ConsultaForm(request.POST if request.method == 'POST' else None)
@@ -48,3 +47,32 @@ def cancelar_consulta(request, pk):
     Consulta.objects.filter(pk=consulta.pk, status='agendada').update(status='cancelada')
     messages.success(request, 'Consulta cancelada.')
     return redirect('consultas')
+
+def pacientes(request):
+    form = PacienteForm(request.POST if request.method == 'POST' else None)
+    if request.method == 'POST' and form.is_valid():
+        paciente = form.save()
+        messages.success(request, f'Paciente {paciente.nome} cadastrado com sucesso.')
+        return redirect('pacientes')
+    busca = request.GET.get('busca', '').strip()
+    lista = Paciente.objects.all().order_by('nome')
+    if busca:
+        lista = lista.filter(Q(nome__icontains=busca) | Q(email__icontains=busca))
+    return render(request, 'pacientes.html', {'form': form, 'pacientes': lista, 'busca': busca})
+
+def editar_paciente(request, pk):
+    paciente = get_object_or_404(Paciente, pk=pk)
+    form = PacienteForm(request.POST or None, instance=paciente)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, f'Paciente {paciente.nome} atualizado com sucesso.')
+        return redirect('pacientes')
+    return render(request, 'editar_paciente.html', {'form': form, 'paciente': paciente})
+
+@require_POST
+def excluir_paciente(request, pk):
+    paciente = get_object_or_404(Paciente, pk=pk)
+    nome_paciente = paciente.nome
+    paciente.delete()
+    messages.success(request, f'Paciente {nome_paciente} excluído com sucesso.')
+    return redirect('pacientes')
